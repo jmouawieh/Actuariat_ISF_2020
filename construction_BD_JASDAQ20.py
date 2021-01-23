@@ -18,7 +18,8 @@ for company, filename in zip(List_Company, all_files):
     company = pd.read_csv(filename, index_col=None, header=0)
     list_df_JASDAQ20.append(company)
 
-date = list_df_JASDAQ20[0].drop(["Dernier","Ouv.","Plus Haut","Plus Bas","Vol.","Variation %"], axis=1) # pour ensuite conserver que les prix journalier de chaque titre
+list_df_JASDAQ20[1].columns= ["Date","Dernier","Ouv.","Plus Haut","Plus Bas","Vol.","Variation %"]
+date = list_df_JASDAQ20[1].drop(["Dernier","Ouv.","Plus Haut","Plus Bas","Vol.","Variation %"], axis=1) # pour ensuite conserver que les prix journalier de chaque titre
 
 #uniformise les noms de colonnes (car certaine table sont en anglais)
 list_df_JASDAQ20[1].columns= ["Date","Dernier","Ouv.","Plus Haut","Plus Bas","Vol.","Variation %"]
@@ -52,7 +53,7 @@ df_JASDAQ20_initial["Date"]=pd.to_datetime(df_JASDAQ20_initial["Date"])#arranger
 df_JASDAQ20_initial=df_JASDAQ20_initial.iloc[::-1]
 df_JASDAQ20_initial.dtypes
 
-df_JASDAQ20_initial.to_csv("/Users/jadmwh/Desktop/JASDAQ 20/JASDAQ20_ini.csv", index= False)
+df_JASDAQ20_initial.to_csv("/Users/jadmwh/Desktop/JASDAQ 20/JASDAQ20_ini(1).csv", index= False)
 
 
 #test de corrélation entre workman et JASDAQ 20 --> -0.08893721692098412
