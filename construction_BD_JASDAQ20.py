@@ -53,3 +53,21 @@ df_JASDAQ20_initial=df_JASDAQ20_initial.iloc[::-1]
 df_JASDAQ20_initial.dtypes
 
 df_JASDAQ20_initial.to_csv("/Users/jadmwh/Desktop/JASDAQ 20/JASDAQ20_ini.csv", index= False)
+
+
+#test de corrélation entre workman et JASDAQ 20 --> -0.08893721692098412
+
+#importation des prix de clotures du JASDAQ 20
+df_JASDAQ20= pd.read_csv("/Users/jadmwh/Downloads/JASDAQ 20 - Données Historiques (1).csv")
+#selection des colonnes
+df_JASDAQ20.drop(["Ouv.","Plus Haut","Plus Bas","Vol.","Variation %"],axis = 1, inplace = True)
+df_JASDAQ20["Dernier"] = df_JASDAQ20["Dernier"].str.replace(".", "", regex =True)
+df_JASDAQ20["Dernier"] = df_JASDAQ20["Dernier"].str.replace(",", ".", regex =True)
+df_JASDAQ20["Dernier"] =pd.to_numeric(df_JASDAQ20["Dernier"] )
+df_JASDAQ20.columns = ["Date","JASDAQ20"]
+df_JASDAQ20["Date"] = pd.to_datetime(df_JASDAQ20["Date"])
+df_JASDAQ20=df_JASDAQ20.iloc[::-1]
+df_JASDAQ20
+
+#test de corrélation
+pd.concat([df_JASDAQ20_initial["Workman"], df_JASDAQ20["JASDAQ20"]], axis=1, keys=['Workman', 'JASDAQ20']).corr().loc['JASDAQ20', 'Workman']
