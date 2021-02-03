@@ -1,0 +1,411 @@
+---
+title: "ProjetJ&M"
+author: "Jade & Matthieu"
+date: "12/21/2020"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+Packages utilis?s
+```{r}
+install.packages("summarytools")
+library(summarytools)
+install.packages("actuar")
+library(actuar)
+install.packages("contrib.url")
+install.packages("Hmisc")
+library(Hmisc)
+install.packages("corrplot")
+library(corrplot)
+install.packages("sandwich")
+library(sandwich)
+install.packages("lmtest")
+library(lmtest)
+install.packages("summarytools")
+library(summarytools)
+install.packages(forcast)
+library(forcats)
+install.packages("tree")
+library("tree")
+install.packages("AER")
+library(AER)
+install.packages("MASS")
+library(MASS)
+install.packages("pscl")
+library(pscl)
+install.packages("vcd")
+library(vcd)
+install.packages("car")
+library(car)
+library(pROC)
+```
+
+1.PREPARATION DE LA BASE 
+
+Importation des bases
+```{r}
+setwd("/Users/jadmwh/Desktop/M1/projet actuaria/Matthieu&Jade/Matthieu&Jade")
+base_client <- read.csv(file="Matthieu&Jade-PG_2017_YEAR0.csv",head = TRUE, sep=";")
+base_sinistre<- read.csv(file="Matthieu&Jade-PG_2017_CLAIMS_YEAR0.csv",head = TRUE, sep=";")
+```
+
+Creation d'une base sinistre contenant que les sinistres positives
+```{r}
+base_sinistre <- subset(base_sinistre, claim_amount >=0)
+```
+
+On sommera le nombre et le montant des sinistres par id_policy
+```{r}
+base_sinistre_nbr <- aggregate(base_sinistre$claim_nb, by=list(Category=base_sinistre$id_policy), FUN=sum)
+colnames(base_sinistre_nbr)[colnames(base_sinistre_nbr)=="Category"] <- "id_policy"
+colnames(base_sinistre_nbr)[colnames(base_sinistre_nbr)=="x"] <- "claim_nb"
+
+base_sinistre_cout <- aggregate(base_sinistre$claim_amount, by=list(Category=base_sinistre$id_policy), FUN=sum)
+colnames(base_sinistre_cout)[colnames(base_sinistre_cout)=="Category"] <- "id_policy"
+colnames(base_sinistre_cout)[colnames(base_sinistre_cout)=="x"] <- "claim_amount"
+```
+
+Creation de la basse sinistre finale
+```{r}
+base_sinistre_cout_nbr <- merge(base_sinistre_nbr,base_sinistre_cout, by="id_policy", all.x=TRUE)
+```
+
+Creation de la base d'etude
+```{r}
+base_etude <- merge(base_client, base_sinistre_cout_nbr, by="id_policy", all.x=TRUE)
+```
+
+Remplacement des NA par 0
+```{r}
+base_etude$claim_amount[is.na(base_etude$claim_amount)] <- 0
+base_etude$claim_nb[is.na(base_etude$claim_nb)] <- 0
+```
+
+2.STATISTIQUES DESCRIPTIVES
+
+Etude des sinistres
+```{r}
+summary(base_etude$claim_amount)
+table(base_etude$claim_nb)/nrow(base_etude)*100
+```
+
+Statistiques descriptives
+```{r}
+summary(base_etude)
+table(base_etude$drv_sex1)/nrow(base_etude)*100
+table(base_etude$drv_sex2)/nrow(base_etude)*100
+str(base_etude)
+```
+
+Répartition des assurés selon le sexe et le type de conducteur
+```{r}
+table(base_etude$drv_sex1)/nrow(base_etude)*100
+table( base_etude[base_etude$drv_drv2 == "Yes" , c("drv_sex2") ] )/sum(base_etude$drv_drv2 =="Yes")*100
+```
+Repartition des assur?s selon le type de garantien, l'usage et le type 
+```{r}
+table(base_etude$pol_coverage)/nrow(base_etude)*100
+table(base_etude$pol_usage)/nrow(base_etude)*100
+table(base_etude$vh_fuel)/nrow(base_etude)*100
+```
+
+
+Etude des correlations entre les variables
+```{r}
+variables <- base_etude[,c("drv_age1","drv_age_lic1","drv_age2","drv_age_lic2","vh_age","vh_cyl","vh_din","vh_speed","vh_value","vh_weight","pol_bonus","pol_duration","claim_nb","claim_amount","pol_sit_duration","vh_sale_begin","vh_sale_end")]
+mcor <- cor(variables)
+```
+
+Significativit? de la correlation
+```{r}
+rcorr(as.matrix(variables[,1:17]))
+```
+
+PLOT
+```{r}
+corrplot(mcor, type="upper", order="hclust", tl.col="black", tl.srt=45)
+```
+
+Claim number by car age
+```{r}
+base_etude$nombre_sinistre <- as.character(base_etude$claim_nb)
+base_etude$nombre_sinistre[base_etude$claim_nb == 0] <- "0"
+base_etude$nombre_sinistre[base_etude$claim_nb == 1 ] <- "1"
+base_etude$nombre_sinistre[base_etude$claim_nb == 2 ] <- "2"
+base_etude$nombre_sinistre[base_etude$claim_nb == 3 ] <- "3"
+base_etude$nombre_sinistre[base_etude$claim_nb == 4 ] <- "4"
+base_etude$nombre_sinistre[base_etude$claim_nb == 5 ] <- "5"
+base_etude$nombre_sinistre[base_etude$claim_nb == 6 ] <- "6"
+
+ggplot(base_etude) +
+  aes(x = vh_age, fill = nombre_sinistre) +
+  geom_bar() +
+  xlab("Age du vehicule") +
+  ylab("Effectifs") +
+  labs(fill = "Nombre des sinistres")
+plot(base_etude$vh_age ~ base_etude$claim_nb)
+```
+
+```{r}
+library(scales)
+ggplot(base_etude) +
+  aes(x = vh_age, fill = nombre_sinistre) +
+  geom_bar(position = "fill") +
+  xlab("Age du vehicule") +
+  ylab("Proportion") +
+  labs(fill = "Nombre des sinistres") +
+  scale_y_continuous(labels = percent)
+```
+
+Claim number by driver age
+```{r}
+ggplot(base_etude) +
+  aes(x = drv_age1, fill = nombre_sinistre) +
+  geom_bar() +
+  xlab("Age du conducteur") +
+  ylab("Effectifs") +
+  labs(fill = "Nombre des sinistres")
+```
+
+```{r}
+ggplot(base_etude) +
+  aes(x = drv_age1, fill = nombre_sinistre) +
+  geom_bar(position = "fill") +
+  xlab("Age du conducteur") +
+  ylab("Proportion") +
+  labs(fill = "Nombre des sinistres") +
+  scale_y_continuous(labels = percent)
+```
+***** Recodage des variables ******
+```{r}
+base_etude$vh_make2 <- as.character(base_etude$vh_make)
+base_etude$vh_make2[!(base_etude$vh_make %in% c("RENAULT","PEUGEOT","CITROEN","VOLKSWAGEN","FORD","OPEL","TOYOTA","MERCEDES BENZ","FIAT"))] <- "AUTRE"
+base_etude$vh_make2 <- as.factor(base_etude$vh_make2)
+
+base_etude$pol_duration2 <- cut(base_etude$pol_duration, c(-Inf,21,Inf))
+base_etude$pol_usage1.2 <- fct_recode(base_etude$pol_usage,"Professional" = "AllTrips")
+base_etude$drv_age1.2 <- cut(base_etude$drv_age1, c(-Inf, 35, 41,46,50,54,58,63,68,75,Inf))
+base_etude$vh_fuel2 <- fct_recode(base_etude$vh_fuel,"Diesel" = "Gasoline")
+base_etude$vh_age2 <- cut(base_etude$vh_age, c(-Inf,17,Inf))
+```
+
+
+3. MODELISATION DE LA FREQUENCE
+
+Calcul moyenne et variance
+```{r}
+v<-base_etude$claim_nb
+mean(v)
+var(v)
+```
+
+Goodness of fit 
+```{r}
+#Goodness of fit : Poisson
+goodfit_pois<- goodfit(base_etude$claim_nb, type = c( "poisson"),
+        method = c("ML", "MinChisq"), par = NULL)
+plot(goodfit_pois)
+
+#Goodness of fit : Negative Binomial 
+goodfit_NB <- goodfit(base_etude$claim_nb, type = c( "nbinomial"),
+        method = c("ML", "MinChisq"), par = NULL)
+plot(goodfit_NB)
+```
+
+
+3.1 Regression Poissonienne
+```{r}
+
+fpois <- glm(claim_nb ~ drv_sex1 + drv_drv2 + vh_din + vh_sale_begin + vh_value + 
+               pol_coverage + pol_payd + drv_age2 + vh_fuel + vh_sale_end + 
+               vh_weight + pol_duration + pol_usage + drv_age1 + drv_age_lic2 + 
+               vh_age  + vh_speed + pol_sit_duration + drv_age_lic1 + 
+               drv_sex2 + vh_cyl  + vh_type + pol_bonus + pol_pay_freq, family=poisson("log"), data=base_etude)
+summary(fpois)
+stepwise <- step(fpois)
+step(fpois)
+
+#Test de sur-dispersion
+dispersiontest(fpois)
+
+ 
+fpois2 <- glm(formula = claim_nb ~ pol_coverage + pol_duration2 + 
+    drv_age1.2 + vh_age2 , family = poisson("log"), 
+    data = base_etude)
+
+
+summary(fpois2)
+
+#Cameron et Trivedi recommandent d'utiliser les ?cart types robustes
+cov.fpois2 <- vcovHC(fpois2, type="HC0")
+std.err <- sqrt(diag(cov.fpois2))
+r.est <- cbind(Estimate= coef(fpois2), "Robust SE" = std.err,
+               "Pr(>|z|)" = 2 * pnorm(abs(coef(fpois2)/std.err), lower.tail=FALSE),
+               LL = coef(fpois2) - 1.96 * std.err,
+               UL = coef(fpois2) + 1.96 * std.err)
+
+AIC_P <- AIC(fpois2)
+```
+```{r}
+# Regression Binomiale Negative avec Theta fix?
+
+phi <- 0.9749978
+regbn <- glm(claim_nb ~ pol_coverage + pol_duration2 + drv_age1.2 + 
+                             vh_age2,family=negative.binomial(phi), data=base_etude)
+summary(regbn)
+
+AIC_NB <- AIC(regbn)
+
+
+#TEST
+linearHypothesis(regbn,c("drv_age1.2(46,50]=0","drv_age1.2(50,54]=0"))
+
+#Regroupement des classes d'age
+base_etude$drv_age1.2_bis <- cut(base_etude$drv_age1, c(-Inf, 35, 41,46,54,58,63,68,75,Inf))
+
+#Nouvelle regression NB apres le regroupement d'age
+phi2 <- 0.975012
+regbn.2 <- glm(claim_nb ~ pol_coverage + pol_duration2 + drv_age1.2_bis + 
+                             vh_age2,family=negative.binomial(phi2), data=base_etude)
+summary(regbn.2)
+
+AIC_NB_bis <- AIC(regbn.2)
+```
+3.3 PREDICTION DE LA FREQUENCE SUR LA BASE YEAR1
+
+3.3.1 Preparation de la base
+```{r}
+#Importation de la base
+setwd("/Users/jadmwh/Desktop/M1/projet actuaria/Matthieu&Jade/Matthieu&Jade")
+base_client1 <- read.csv(file="Matthieu&Jade-PG_2017_YEAR1.csv")
+
+#Categorisation des variables (on utilise la meme categorisation utilis? dans la base d'etude)
+base_client1$vh_age2 <- cut(base_client1$vh_age, c(-Inf,17,Inf))
+base_client1$pol_duration2 <- cut(base_client1$pol_duration, c(-Inf,21,Inf))
+base_client1$drv_age1.2 <- cut(base_client1$drv_age1, c(-Inf, 35, 41,46,50,54,58,63,68,75,Inf))
+base_client1$drv_age1.2_bis <- cut(base_client1$drv_age1, c(-Inf, 35, 41,46,54,58,63,68,75,Inf))
+
+```
+
+3.3.2 Pr?diction utilisant la Binomiale Negative
+```{r}
+Prediction_frequence_nb2 <- predict.glm(NB2, base_client1, type="response")
+summary(Prediction_frequence_nb2)
+
+```
+4. MODELISATION DE LA SEVERITE
+
+Pour modeliser la severite on utilisera que les individus qui ont eu un montant de sinistre positif
+```{r}
+base_severite <- subset(base_etude , claim_amount >0 )
+base_severite$vh_age <- cut(base_severite$vh_age, c(-Inf,17,Inf))
+base_severite$pol_duration<- cut(base_severite$pol_duration, c(-Inf,21,Inf))
+base_severite$drv_age1.2 <- cut(base_severite$drv_age1, c(-Inf, 35, 41,46,50,54,58,63,68,75,Inf))
+
+
+```
+Statistiques descriptives de la base 
+```{r}
+mean(base_severite$claim_amount)
+quantile(base_severite$claim_amount,prob=c(.5,.9,.95,.99))
+
+aggregate(base_severite$vh_din ,list(base_severite$drv_age1.2), mean)
+aggregate(base_severite$vh_speed ,list(base_severite$drv_age1.2), mean)
+aggregate(base_severite$vh_cyl ,list(base_severite$drv_age1.2), mean)
+aggregate(base_severite$vh_value ,list(base_severite$drv_age1.2), mean)
+table(base_severite$drv_age1.2,base_severite$vh_fuel)
+
+
+```
+
+
+4.1 Modelisation de la severit? par le modele log-normale
+```{r}
+log_normale <- lm(log(claim_amount) ~ drv_sex1 + drv_drv2 + vh_din + vh_sale_begin + vh_value + 
+               pol_coverage + pol_payd + drv_age2 + vh_fuel + vh_sale_end + 
+               vh_weight + pol_duration + pol_usage + drv_age1 + drv_age_lic2 + 
+               vh_age  + vh_speed + pol_sit_duration + drv_age_lic1 + 
+               drv_sex2 + vh_cyl  + vh_type + pol_bonus + pol_pay_freq, data=base_severite)
+stepwise_LN <-step(log_normale)
+
+log_normale2 <- lm(log(claim_amount) ~ vh_fuel+ drv_age1  , data=base_severite)
+summary(log_normale2)
+
+#Fonction pour calculer le critere AIC
+
+loglikg<-logLik(log_normale2)
+akaike<-function(npar,loglik,k){-2*loglik+k*npar}
+akaike(9,loglikg[1],2)
+
+#Crit?re d'ad?quation 
+AIC(log_normale2)
+deviance(log_normale2)
+logLik(log_normale2)
+
+plot(log_normale2$residuals)
+```
+
+4.2 Modelisation de la severite par le modele Gamma
+```{r}
+gamma1 <- glm(claim_amount ~ drv_sex1 + drv_drv2 + vh_din + vh_sale_begin + vh_value + 
+               pol_coverage + pol_payd + drv_age2 + vh_fuel + vh_sale_end + 
+               vh_weight + pol_duration + pol_usage + drv_age1 + drv_age_lic2 + 
+               vh_age  + vh_speed + pol_sit_duration + drv_age_lic1 + 
+               drv_sex2 + vh_cyl  + vh_type + pol_bonus + pol_pay_freq, family=Gamma(link="log"), data=base_severite)
+summary(gamma1)
+stepwise_gamma <- step(gamma1)
+summary(stepwise_gamma)
+
+
+gamma3 <- glm(claim_amount ~  vh_fuel +drv_age1 , family = Gamma(link = "log"), data=base_severite )
+summary(gamma3)
+
+#Crit?re d'ad?quations
+AIC(gamma3)
+deviance(gamma3)
+logLik(gamma3)
+
+plot(gamma3$residuals)
+
+```
+
+4.3 Prediction de la severite
+```{r}
+
+#Prediction Gamma 
+base_client1$Prediction_severite <- predict.glm(gamma3, base_client1, type="response")
+summary(base_client1$Prediction_severite)
+
+#Etude des couts et valeurs des vehicules suivant la varialbe vh_fuel 
+aggregate(base_client1$Prediction_severite ,list(base_client1$vh_fuel), mean)
+aggregate(base_client1$vh_value ,list(base_client1$vh_fuel), mean)
+
+#Prediction Log-Normal 
+prediction_sev <-predict(log_normale2, base_client1,type="response")
+sigma <- summary(log_normale2)$sigma
+Pln <- exp(prediction_sev+sigma^2/2)
+
+mean(Pln)
+min(Pln)
+max(Pln)
+
+#Prime Pure 
+
+base_client1$tarif <- Prediction_frequence_nb2*Pln
+summary(base_client1$tarif)
+
+base_tarif <- base_client1[,c("id_policy","tarif")]
+write.csv(base_tarif, file = "base_tarif.csv")
+
+
+```
+ETUDE DES SINISTRES GRAVES
+```{r}
+
+M <- base_severite[order(-base_severite$claim_amount),c("claim_amount","claim_nb","vh_din","vh_age","drv_age1","vh_type")]
+M$SUM <- cumsum(M$claim_amount)/sum(M$claim_amount)*100
+head(M)
+
+```
