@@ -15,13 +15,13 @@ doivent être testés.
 Les documents :
 
 1 - Base de 100 000 polices *-PG 2017 YEAR0.csv et d’une base de sinistres associés *-PG 2017 CLAIMS YEAR0.csv 
-qui permettent de calibrer le modèle. (Matthieu&Jade-PG_2017_YEAR0.csv)
-2 - La base de validation de 100 000 polices *-PG 2017 CLAIMS YEAR1.csv. (Matthieu&Jade-PG_2017_YEAR1.csv)
-3 - Les données sont issues d’un jeu de tarification actuarielle : elles sont décrites en détails dans le document
-description_variables.pdf
-4 - Le rapport (Projet_tarification_Jade_Matthieu (3).pdf) synthétique et organisé présentant la méthodologie utilisée et les résultats
-5 - un fichier R principal appelant le code utilisé dans le rapport et commenté brièvement. (projet J&M.Rmd)
-6 - un fichier csv TARIF.csv avec les tarifs proposés. (base_tarif.csv)
+qui permettent de calibrer le modèle. (Matthieu&Jade-PG_2017_YEAR0.csv) <br>
+2 - La base de validation de 100 000 polices *-PG 2017 CLAIMS YEAR1.csv. (Matthieu&Jade-PG_2017_YEAR1.csv) <br>
+3 - Les données sont issues d’un jeu de tarification actuarielle : elles sont décrites en détails dans le document 
+description_variables.pdf<br>
+4 - Le rapport (Projet_tarification_Jade_Matthieu (3).pdf) synthétique et organisé présentant la méthodologie utilisée et les résultats<br>
+5 - un fichier R principal appelant le code utilisé dans le rapport et commenté brièvement. (projet J&M.Rmd)<br>
+6 - un fichier csv TARIF.csv avec les tarifs proposés. (base_tarif.csv)<br>
 
 On a:
 1. Explorez les données *YEAR0.csv.
